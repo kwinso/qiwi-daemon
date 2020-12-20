@@ -45,7 +45,8 @@ PAYMENT_AMOUNT="10"
 
 # Usage
 
-BTW it only work is typescript (will be extented to JS soon)
+BTW it works only in typescript.  
+Soon it'll be moved to npm package
 
 ```typescript
 import { QiWiDaemon } from "./qiwiDaemon";
