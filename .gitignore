@@ -1,0 +1,6 @@
+dist
+node_modules
+.prettierrc
+*.log
+.qiwi.env
+package-lock.json
