@@ -1,6 +1,7 @@
 # QiWi Daemon
 
-Simple QiWi Daemon to watch your automate QiWi Payments.
+Simple QiWi Daemon to watch your automate QiWi Payments.  
+It uses Redis And node-qiwi-api to get stuff working.
 
 # Setup
 
@@ -21,6 +22,7 @@ Then, you need to get QiWi's API Token.
 To get it just go to https://qiwi.com/api.
 
 `Note`: You only need to give read permisson for your token.
+`Note 2`: This daemon uses Redis to manage sessions, dont forget to install and configure this as well.
 
 Create an .qiwi.env file:
 
