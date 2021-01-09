@@ -13,7 +13,11 @@
       "daemon",
       "json"
   ],
-  "author": "kwinso",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/uwumouse/qiwi-daemon"
+  },
+  "author": "uwumouse",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^8.2.0",
