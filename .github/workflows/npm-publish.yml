@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
-      - run: npm run biild --if-present
+      - run: npm run build --if-present
 
   publish-npm:
     needs: build
