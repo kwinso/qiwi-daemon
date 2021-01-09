@@ -27,7 +27,7 @@ interface DaemonConfig {
 class QiWiDaemon {
     private readonly config: DaemonConfig = {
         updateTimout: 30,
-        storage: "redis",
+        storage: "json",
         jsonName: "qiwi-daemon.db.json",
     };
     private readonly wallet;

@@ -14,7 +14,7 @@ npm i qiwi-daemon
 
 # Using in your code
 ```typescript
-import { QiWiDaemon } from "../src/qiwiDaemon";
+import { QiWiDaemon } from "qiwi-daemon";
 
 // This will force daemon to use JSON file to store sessions
 const daemon = new QiWiDaemon({ database: 'json' });
@@ -51,10 +51,12 @@ daemon.start();
 ```
 
 # Configuration
+
 ### Enviromen variables
 `qiwi-daemon` uses `.qiwi.env` file to process the most part of configuration data.  
 Values in this file contain sensitive information, so It's likely you store it in file rather than in code.  
 Here are all positions in this file.    
+
 **Required**:
 - **PHONE_NUMBER** - Phone number that you have used to create a QiWi Account
 - **QIWI_TOKEN** -  A QiWi API token (Get it [here](https://qiwi.com/api))
@@ -62,14 +64,16 @@ Here are all positions in this file.
 - **PAYMENT_AMOUNT** - Amount of your currency to process this payment  
   
 **Not required**:
-- **NO_LOGS** - Don't show logs from daemon (Pass `true` turn this on)
+- **NO_LOGS** - Don't show logs from daemon (Pass `true` to turn this on)
 > Daemon also logs every transaction it has processed, it'll be turned off with this option set to `true`
 - **DEBUG** - Enable debug log
+- **REDIS_PREFIX** - Prefix for entiries in Redis Storage
+> `REDIS_PREFIX` is usefull only if you've set storage type to "redis"
 > Example for `.qiwi.env` you can find in this repository
 
 ### In-code config
 Daemon could accept config object, as you could see in example earlier.  
-All options are not required, since there are default values for it.  
+All options are not required, since there are default values used.  
 
 | Syntax | Description | Type | Default |
 | ----------- | ----------- | ----------- | ----------- |
