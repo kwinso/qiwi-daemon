@@ -1,14 +1,14 @@
-import fs from "fs";
+import JsonStorageUtils from "fs";
 import { Session } from "../types";
 import { fileLocation } from "./fileUtils";
 
 function getSessionsFromDB(filename: string) {
-    const data = fs.readFileSync(fileLocation(filename));
+    const data = JsonStorageUtils.readFileSync(fileLocation(filename));
     return JSON.parse(data.toString()) as Session[];
 }
 
 export async function createStorageFile(filename: string) {
-    fs.writeFileSync(fileLocation(filename), JSON.stringify([]));
+    JsonStorageUtils.writeFileSync(fileLocation(filename), JSON.stringify([]));
 }
 
 /** Saves new session to db, ingores if new is already exists */
@@ -21,7 +21,7 @@ export async function saveSession(session: { keyword: string; id: string }, file
 
     sessions.push(session);
 
-    fs.writeFileSync(fileLocation(filename), JSON.stringify(sessions), {
+    JsonStorageUtils.writeFileSync(fileLocation(filename), JSON.stringify(sessions), {
         flag: "w+",
     });
 }
@@ -31,7 +31,7 @@ export function deleteSession(keyword: string, filename: string) {
 
     sessions = sessions.filter((s) => s.keyword != keyword);
 
-    fs.writeFileSync(fileLocation(filename), JSON.stringify(sessions), {
+    JsonStorageUtils.writeFileSync(fileLocation(filename), JSON.stringify(sessions), {
         flag: "w+",
     });
 }

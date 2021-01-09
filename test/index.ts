@@ -9,6 +9,9 @@ daemon.listen("start", () => {
 
 daemon.listen("confirm_transaction", (id: string) => {
     console.log(`[Test] ${id} just paid`);
+    daemon.stop();
 })
+
+daemon.listen("stop", (message: string) => console.log("Oops, daemon stopped!", message));
 
 daemon.start();

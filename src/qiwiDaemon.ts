@@ -31,7 +31,13 @@ class QiWiDaemon {
         jsonName: "qiwi-daemon.db.json",
     };
     private readonly wallet;
+    private watchingProcess?: NodeJS.Timeout;
     private listeners: { cb: Function; event: DaemonEvents }[] = [];
+    private runningState: boolean = false;
+
+    public get isRunning() {
+        return this.runningState;
+    }
 
     constructor(config?: Partial<DaemonConfig>) {
         // If config passed, combining all values the default config values
@@ -73,6 +79,19 @@ class QiWiDaemon {
         this.watch();
         this.emit("start");
     }
+
+    async stop() {
+        clearTimeout(this.watchingProcess as NodeJS.Timeout);
+
+        if (this.config.storage == "redis") {
+            redisClient.quit();
+        }
+
+        this.runningState = false;
+        this.emit("stop", "Stop function call.")
+    }
+
+    
 
     onTransactionConfirm(listener: (id: string) => void) {
         this.listeners.push({ event: "confirm_transaction", cb: listener });
@@ -156,8 +175,9 @@ class QiWiDaemon {
     private watch() {
         logger.info("QiWiDaemon Started");
         this.emit("watch_start");
+        this.runningState = true;
 
-        const checkTimeout = setTimeout(async () => {
+        this.watchingProcess = setTimeout(async () => {
             // Comments that are already checked and user has been confirmed. Used to avoit double checking
             const confirmedComments: string[] = [];
             let transactions;
@@ -167,8 +187,8 @@ class QiWiDaemon {
             } catch {
                 logger.error("Failed to get your transactions history. Probably, you have set bad credentials.");
                 logger.warn("Stopping Daemon.");
-                this.emit("stop");
-                clearTimeout(checkTimeout);
+                this.emit("stop", "Failed to get transactions history.");
+                clearTimeout(this.watchingProcess as NodeJS.Timeout);
                 return;
             }
 

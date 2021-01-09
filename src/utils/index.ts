@@ -1,4 +1,4 @@
-import * as JsonDBUtils from "./jsonDbUtils";
+import * as JsonStorageUtils from "./jsonStorageUtils";
 import * as FileUtils from "./fileUtils";
 
-export { JsonDBUtils, FileUtils };
+export { JsonStorageUtils, FileUtils };
