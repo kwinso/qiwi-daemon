@@ -1,6 +1,6 @@
 # QiWi Daemon
 
-A simple QiWi Daemon to automate QiWi Payments.  
+A QiWi Daemon to automate QiWi Payments.  
 It uses Redis And node-qiwi-api to get stuff working.
 
 # Setup
