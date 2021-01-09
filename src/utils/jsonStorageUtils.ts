@@ -7,7 +7,7 @@ function getSessionsFromDB(filename: string) {
     return JSON.parse(data.toString()) as Session[];
 }
 
-export async function createDatabaseFile(filename: string) {
+export async function createStorageFile(filename: string) {
     fs.writeFileSync(fileLocation(filename), JSON.stringify([]));
 }
 

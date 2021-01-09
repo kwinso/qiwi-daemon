@@ -1,14 +1,15 @@
-import { logger, paymentsLogger } from "./tools/logger";
+import { logger, transactionsLogger } from "./tools/logger";
 // @ts-ignore <fuck node-qiwi-api>
 import { asyncApi as asyncQiWi } from "node-qiwi-api";
 import { env, envCheck } from "./tools/env";
 import { redisClient, redisGet, redisSet } from "./tools/redis";
 import { getKeyword } from "./tools/wordlist";
-import { FileUtils, JsonDBUtils } from "./utils";
+import { FileUtils, JsonStorageUtils } from "./utils";
 import { Session } from "./types";
 
-type DaemonEvents = "ready" | "confirm_payment" | "watch_start" | "stop";
-interface Payment {
+type DaemonEvents = "start" | "confirm_transaction" | "watch_start" | "stop";
+
+interface Transaction {
     person: any;
     comment: string;
     date: Date;
@@ -16,17 +17,17 @@ interface Payment {
 
 interface DaemonConfig {
     /** Where to store temporary payment sessions */
-    database: "redis" | "json";
+    storage: "redis" | "json";
     /** Timeout between each wallet history check */
     updateTimout: number;
-    /** JSON Database name */
+    /** JSON Storage name */
     jsonName: string;
 }
 
 class QiWiDaemon {
     private readonly config: DaemonConfig = {
         updateTimout: 30,
-        database: "redis",
+        storage: "redis",
         jsonName: "qiwi-daemon.db.json",
     };
     private readonly wallet;
@@ -41,22 +42,22 @@ class QiWiDaemon {
         this.wallet = new asyncQiWi(env("QIWI_TOKEN"));
     }
 
-    private connectDatabase(): Promise<boolean> {
+    private connectStorage(): Promise<boolean> {
         return new Promise(async (res) => {
-            const { database: databaseType, jsonName } = this.config;
+            const { storage: storageType, jsonName } = this.config;
 
-            if (databaseType == "redis") {
+            if (storageType == "redis") {
                 redisClient.on("connect", () => {
                     logger.debug("Redis connected...");
                     res(true);
                 });
-            } else if (databaseType == "json") {
-                const databaseFileName = jsonName;
+            } else if (storageType == "json") {
+                const storageFileName = jsonName;
 
-                const exists = await FileUtils.fileExists(databaseFileName);
+                const exists = await FileUtils.fileExists(storageFileName);
 
                 if (!exists) {
-                    await JsonDBUtils.createDatabaseFile(databaseFileName);
+                    await JsonStorageUtils.createStorageFile(storageFileName);
                     logger.info(`Created ${this.config.jsonName}`);
                 }
 
@@ -67,14 +68,14 @@ class QiWiDaemon {
 
     /** This function start bot to check history */
     async start() {
-        await this.connectDatabase();
+        await this.connectStorage();
 
         this.watch();
-        this.emit("ready");
+        this.emit("start");
     }
 
-    onPaymentConfirm(listener: (id: string) => void) {
-        this.listeners.push({ event: "confirm_payment", cb: listener });
+    onTransactionConfirm(listener: (id: string) => void) {
+        this.listeners.push({ event: "confirm_transaction", cb: listener });
     }
 
     /**
@@ -118,16 +119,16 @@ class QiWiDaemon {
     }
 
     private async saveSession(s: Session) {
-        if (this.config.database == "redis") await redisSet(s.keyword, s.id);
-        else if (this.config.database == "json") {
-            JsonDBUtils.saveSession(s, this.config.jsonName);
+        if (this.config.storage == "redis") await redisSet(s.keyword, s.id);
+        else if (this.config.storage == "json") {
+            JsonStorageUtils.saveSession(s, this.config.jsonName);
         }
     }
 
     private async getSessionId(comment: string): Promise<string | null> {
-        if (this.config.database == "redis") return await redisGet(comment);
-        else if (this.config.database == "json") {
-            const session = JsonDBUtils.getSession(comment, this.config.jsonName);
+        if (this.config.storage == "redis") return await redisGet(comment);
+        else if (this.config.storage == "json") {
+            const session = JsonStorageUtils.getSession(comment, this.config.jsonName);
             if (session) return session.id;
             else return null;
         } else {
@@ -139,12 +140,12 @@ class QiWiDaemon {
         // Creating promise to make sure code can await deletion
         return new Promise((res) => {
             // I don't know what is 2nd argument for, so just throw the same keyword
-            if (this.config.database == "redis") {
+            if (this.config.storage == "redis") {
                 redisClient.del(keyword, keyword, () => {
                     res();
                 });
-            } else if (this.config.database == "json") {
-                JsonDBUtils.deleteSession(keyword, this.config.jsonName);
+            } else if (this.config.storage == "json") {
+                JsonStorageUtils.deleteSession(keyword, this.config.jsonName);
             }
         });
     }
@@ -172,7 +173,7 @@ class QiWiDaemon {
             }
 
             if (transactions.data) {
-                let payments: Payment[] = transactions.data
+                let payments: Transaction[] = transactions.data
                     .filter((tnx: any) => tnx.sum.amount >= Number(env("PAYMENT_AMOUNT")) && tnx.comment)
                     .map((tnx: any) => {
                         return {
@@ -188,9 +189,9 @@ class QiWiDaemon {
 
                     if (sessionId) {
                         confirmedComments.push(payment.comment);
-                        this.emit("confirm_payment", sessionId);
+                        this.emit("confirm_transaction", sessionId);
                         this.delSession(payment.comment);
-                        paymentsLogger.log("info", `Payment for ${sessionId} has confirmed.`);
+                        transactionsLogger.log("info", `Payment for ${sessionId} has confirmed.`);
                     }
                 }
             }
