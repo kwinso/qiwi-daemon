@@ -1,10 +1,9 @@
 # QiWi Daemon
 
 `qiwi-daemon` is a package that helps you work with qiwi transtactions. 
-It uses Redis And node-qiwi-api to get stuff working.
 
 # How does it work?
-Daemon will be cheching for active transtaction sessions in storage (storage type will be show later).  
+Daemon will be checking for active transtaction sessions in storage (storage type will be show later).  
 If daemon find a session in storage by transaction comment, It'll fire up a listener in code, so you can get notified and process this payment.
 
 # Installation
