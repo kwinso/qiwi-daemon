@@ -1,4 +1,3 @@
-import { debug } from "console";
 import dotenv from "dotenv";
 import { logger } from "./logger";
 
