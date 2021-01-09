@@ -2,7 +2,7 @@
   "name": "qiwi-daemon",
   "version": "1.0.0",
   "description": "A tool for handling QiWi Transactions automaticly",
-  "main": "dist/qiwiDaemon.js",
+  "main": "src/qiwiDaemon.ts",
   "scripts": {
     "dev": "nodemon --ignore '*.json' ./test/index.ts",
     "build": "tsc"
