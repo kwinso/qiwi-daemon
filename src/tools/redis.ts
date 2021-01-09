@@ -1,6 +1,14 @@
 import redis from "redis";
+import { env } from "./env";
+import { logger } from "./logger";
 
-const redisClient = redis.createClient({ prefix: "qiwidaemon:" });
+const envPrefix = env("REDIS_PREFIX", false);
+// Setting prefix to default value if not set in env
+const prefix =  envPrefix != "" ? envPrefix : "qiwidaemon:";
+
+logger.debug(`Prefix ${prefix} will be used for Redis (if using redis)`);
+
+const redisClient = redis.createClient({ prefix });
 
 
 // * I make promises out of callback functions

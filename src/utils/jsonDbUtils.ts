@@ -1,6 +1,5 @@
 import fs from "fs";
-import { Session } from "../../types";
-import { logger } from "../logger";
+import { Session } from "../types";
 import { fileLocation } from "./fileUtils";
 
 function getSessionsFromDB(filename: string) {
@@ -17,7 +16,6 @@ export async function saveSession(session: { keyword: string; id: string }, file
     let sessions = getSessionsFromDB(filename);
 
     if (sessions.find((s) => s.keyword == session.keyword)) {
-        logger.warn(`Rewriting session ${session.id}. ID: ${session.id}`);
         sessions = sessions.filter((s) => s.keyword != session.keyword);
     }
 

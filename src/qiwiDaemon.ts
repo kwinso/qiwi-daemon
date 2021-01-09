@@ -4,7 +4,7 @@ import { asyncApi as asyncQiWi } from "node-qiwi-api";
 import { env, envCheck } from "./tools/env";
 import { redisClient, redisGet, redisSet } from "./tools/redis";
 import { getKeyword } from "./tools/wordlist";
-import { FileUtils, JsonDBUtils } from "./tools/utils";
+import { FileUtils, JsonDBUtils } from "./utils";
 import { Session } from "./types";
 
 type DaemonEvents = "ready" | "confirm_payment" | "watch_start" | "stop";
@@ -94,11 +94,12 @@ class QiWiDaemon {
      *  Creates new session for user
      * @param id - any string that could be considered as user identifier
      * @param customKeyword - custom keyword (if you want use your way to generate keywords)
+     * @returns Generated keyword
      *
      * You have to be sure that redis is connected.
      * Note: to be sure it's will be set, use it in on("ready") callback
      */
-    async createPaymentSession(id: string, customKeyword?: string) {
+    async createPaymentSession(id: string, customKeyword?: string): Promise<string> {
         let keyword;
         if (!customKeyword) {
             while (true) {
@@ -113,6 +114,7 @@ class QiWiDaemon {
         logger.debug(`Created new payment for ${id} with keyword: ${keyword}`);
 
         await this.saveSession({ keyword, id });
+        return keyword;
     }
 
     private async saveSession(s: Session) {
