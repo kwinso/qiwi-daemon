@@ -7,7 +7,13 @@
     "dev": "nodemon --ignore '*.json' ./test/index.ts",
     "build": "tsc"
   },
-  "author": "undermouse",
+  "keywords": [
+      "qiwi", 
+      "redis",
+      "daemon",
+      "json"
+  ],
+  "author": "kwinso",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^8.2.0",
