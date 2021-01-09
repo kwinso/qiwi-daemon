@@ -1,31 +1,21 @@
-name: Node.js CI
-
+name: npm-publish
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-
+    branches:
+      - master # Change this to your default branch
 jobs:
-  build:
-
+  npm-publish:
+    name: npm-publish
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [12.x]
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+    - name: Checkout repository
+      uses: actions/checkout@master
+    - name: Set up Node.js
+      uses: actions/setup-node@master
       with:
-        node-version: ${{ matrix.node-version }}
-        registry-url: 'https://registry.npmjs.org'
-    - run: npm install
-    - run: npm run build --if-present
-    - name: Publish to npm
-      uses: pascalgn/npm-publish-action@1.2.0
+        node-version: 10.14.2
+    - name: Publish if version has been updated
+      uses: pascalgn/npm-publish-action@4f4bf159e299f65d21cd1cbd96fc5d53228036df
       with: 
         tag_name: "v%s"
         tag_message: "v%s"
