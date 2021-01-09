@@ -37,7 +37,7 @@ const loggingOptions: LogOptions = {
     qiwiLevel: {
         level: "info",
         format: winston.format.combine(winston.format.timestamp({ format: timeformat }), paymentLogFormat),
-        filename: "qiwi-daemon.log",
+        filename: "qiwi-daemon.log" 
     },
 };
 
@@ -54,9 +54,11 @@ const logger = winston.createLogger({
 
 if (isDebugMode) logger.debug("Welcome to debug mode. Be carefull, there might be logged some personal data.");
 
-const paymentsLogger = winston.createLogger({
+const transactionsLogger = winston.createLogger({
     silent: loggerDisabled,
-    transports: [new winston.transports.File(loggingOptions.qiwiLevel)],
+    transports: loggerDisabled ? undefined : [
+        new winston.transports.File(loggingOptions.qiwiLevel),
+    ],
 });
 
-export { logger, paymentsLogger };
+export { logger, transactionsLogger };
