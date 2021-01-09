@@ -25,5 +25,5 @@ jobs:
     - run: npm install
     - run: npm run build --if-present
     - run: npm publish
-    - env:
+      env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
