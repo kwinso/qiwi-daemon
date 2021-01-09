@@ -21,7 +21,7 @@ import { QiWiDaemon } from "../src/qiwiDaemon";
 const daemon = new QiWiDaemon({ database: 'json' });
 
 // This function will be called when daemon is stated to use.
-daemon.listen("ready", () => {
+daemon.listen("start", () => {
     console.log("Looks like somebody's watchin' my transactions!");
     
     // Manually creating session
@@ -44,7 +44,9 @@ daemon.onTransactionConfirm(id => {
     daemon.stop();
 });
 
-daemon.listen("stop", (msg) => console.log("Oops, daemon stopped!", "Message: ", msg));
+daemon.listen("stop", (msg) => {
+    console.log("Oops, daemon stopped!", "Message: ", msg)
+});
 
 daemon.start();
 ```

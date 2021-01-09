@@ -2,7 +2,7 @@
   "name": "qiwi-daemon",
   "version": "1.0.0",
   "description": "A tool for handling QiWi Transactions automaticly",
-  "main": "src/qiwiDaemon.ts",
+  "main": "dist/qiwiDaemon.js",
   "scripts": {
     "dev": "nodemon --ignore '*.json' ./test/index.ts",
     "build": "tsc"
@@ -17,6 +17,7 @@
       "type": "git",
       "url": "https://github.com/uwumouse/qiwi-daemon"
   },
+  "typings": "./index.d.ts",
   "author": "uwumouse",
   "license": "ISC",
   "dependencies": {
