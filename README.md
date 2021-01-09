@@ -5,17 +5,9 @@ It uses Redis And node-qiwi-api to get stuff working.
 
 # Setup
 
-First of all, you need to clone this repo.  
-Then you can start your app from here by just extending it.
-
+Install repo with npm
 ```bash
-# Clone it
-git clone https://github.com/uwumouse/qiwi-daemon.git
-
-cd qiwi-daemon
-
-# Install dependencies
-npm i
+npm i qiwi-daemon
 ```
 
 Then, you need to get QiWi's API Token.  
