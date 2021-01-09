@@ -1,11 +1,10 @@
 {
-  "name": "qiwi_payment_bot",
+  "name": "qiwi-daemon",
   "version": "1.0.0",
-  "description": "Telegram Bot with Automatic Qiwi Payments implemented",
-  "main": "bot.ts",
+  "description": "A tool for handling QiWi Transactions automaticly",
+  "main": "dist/qiwiDaemon.js",
   "scripts": {
-    "start": "node -r ts-node/register ./src/index.ts",
-    "dev": "nodemon ./src/index.ts",
+    "dev": "nodemon --ignore '*.json' ./test/index.ts",
     "build": "tsc"
   },
   "author": "undermouse",

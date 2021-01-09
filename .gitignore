@@ -4,3 +4,4 @@ node_modules
 *.log
 .qiwi.env
 package-lock.json
+*.db.json
