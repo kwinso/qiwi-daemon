@@ -2,18 +2,24 @@ import JsonStorageUtils from "fs";
 import { Session } from "../types";
 import { fileLocation } from "./fileUtils";
 
-function getSessionsFromDB(filename: string) {
-    const data = JsonStorageUtils.readFileSync(fileLocation(filename));
+let storageFilename = "qiwi-daemon.db.json";
+
+export function setStorageFilename(filename:string) {
+    storageFilename = filename;
+}
+
+function getSessionsFromDB() {
+    const data = JsonStorageUtils.readFileSync(fileLocation(storageFilename));
     return JSON.parse(data.toString()) as Session[];
 }
 
-export async function createStorageFile(filename: string) {
-    JsonStorageUtils.writeFileSync(fileLocation(filename), JSON.stringify([]));
+export async function createStorageFile() {
+    JsonStorageUtils.writeFileSync(fileLocation(storageFilename), JSON.stringify([]));
 }
 
 /** Saves new session to db, ingores if new is already exists */
-export async function saveSession(session: { keyword: string; id: string }, filename: string) {
-    let sessions = getSessionsFromDB(filename);
+export async function saveSession(session: { keyword: string; id: string }) {
+    let sessions = getSessionsFromDB();
 
     if (sessions.find((s) => s.keyword == session.keyword)) {
         sessions = sessions.filter((s) => s.keyword != session.keyword);
@@ -21,23 +27,23 @@ export async function saveSession(session: { keyword: string; id: string }, file
 
     sessions.push(session);
 
-    JsonStorageUtils.writeFileSync(fileLocation(filename), JSON.stringify(sessions), {
+    JsonStorageUtils.writeFileSync(fileLocation(storageFilename), JSON.stringify(sessions), {
         flag: "w+",
     });
 }
 
-export function deleteSession(keyword: string, filename: string) {
-    let sessions = getSessionsFromDB(filename);
+export function deleteSession(keyword: string) {
+    let sessions = getSessionsFromDB();
 
     sessions = sessions.filter((s) => s.keyword != keyword);
 
-    JsonStorageUtils.writeFileSync(fileLocation(filename), JSON.stringify(sessions), {
+    JsonStorageUtils.writeFileSync(fileLocation(storageFilename), JSON.stringify(sessions), {
         flag: "w+",
     });
 }
 
-export function getSession(keyword: string, filename: string): Session | null {
-    let sessions = getSessionsFromDB(filename);
+export function getSession(keyword: string): Session | null {
+    let sessions = getSessionsFromDB();
 
     const s = sessions.find((s) => s.keyword == keyword);
     if (s) return s;

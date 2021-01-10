@@ -4,7 +4,7 @@ import { logger } from "./logger";
 dotenv.config({ path: ".qiwi.env" });
 
 const isDebugMode = env("DEBUG", false) == "true";
-const requiredVars = ["PAYMENT_AMOUNT", "QIWI_TOKEN", "PHONE_NUMBER"];
+const requiredVars = ["TRANS_AMOUNT", "QIWI_TOKEN", "PHONE_NUMBER"];
 
 export function env(name: string, required = true): string {
     const value = process.env[name];

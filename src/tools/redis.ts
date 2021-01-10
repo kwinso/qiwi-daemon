@@ -4,30 +4,40 @@ import { logger } from "./logger";
 
 const envPrefix = env("REDIS_PREFIX", false);
 // Setting prefix to default value if not set in env
-const prefix =  envPrefix != "" ? envPrefix : "qiwidaemon:";
+const prefix = envPrefix != "" ? envPrefix : "qiwidaemon:";
 
-logger.debug(`Prefix ${prefix} will be used for Redis (if using redis)`);
+class QiwiDaemonRedis {
+    public client: redis.RedisClient;
 
-const redisClient = redis.createClient({ prefix });
+    constructor() {
+        logger.debug(`Prefix "${prefix}" will be used for Redis (if using redis)`);
 
+        try {
+            this.client = redis.createClient({ prefix });            
+        } catch (error) {
+            logger.error("Failed to connect to Redis.");
+            throw error;
+        }
+    }
 
-// * I make promises out of callback functions
-function redisGet(key: string): Promise<string | null> {
-    return new Promise((res, rej) => {
-        redisClient.get(key, (err, reply) => {
-            if (err) rej(err);
-            res(reply);
+    // * I make promises out of callback functions
+    asyncGet(key: string): Promise<string | null> {
+        return new Promise((res, rej) => {
+            this.client.get(key, (err, reply) => {
+                if (err) rej(err);
+                res(reply);
+            });
         });
-    });
+    }
+
+    asyncSet(key: string, value: string): Promise<void> {
+        return new Promise((res, rej) => {
+            this.client.set(key, value, (err, reply) => {
+                if (err) rej(err);
+                else res();
+            });
+        });
+    }
 }
 
-function redisSet(key: string, value: string): Promise<void> {
-    return new Promise((res, rej) => {
-        redisClient.set(key, value, (err, reply) => {
-            if (err) rej(err);
-            else res();
-        });
-    });
-}
-
-export { redisClient, redisGet, redisSet };
+export { QiwiDaemonRedis };

@@ -1,14 +1,12 @@
 import { logger, transactionsLogger } from "./tools/logger";
-// @ts-ignore <fuck node-qiwi-api>
-import { asyncApi as asyncQiWi } from "node-qiwi-api";
 import { env, envCheck } from "./tools/env";
-import { redisClient, redisGet, redisSet } from "./tools/redis";
+import { QiwiDaemonRedis } from "./tools/redis";
 import { getKeyword } from "./tools/wordlist";
 import { FileUtils, JsonStorageUtils } from "./utils";
 import { Session } from "./types";
 import { QiWi } from "./tools/qiwi";
 
-type DaemonEvents = "start" | "confirm_transaction" | "watch_start" | "stop";
+type DaemonEvent = "start" | "confirm_transaction" | "watch_start" | "stop";
 
 interface Transaction {
     person: any;
@@ -23,39 +21,91 @@ interface DaemonConfig {
     updateTimout: number;
     /** JSON Storage name */
     jsonName: string;
+    /** JSON Storage parent directory */
+    jsonFileDir: string;
 }
 
 class QiWiDaemon {
+    /* PUBLIC VARIABLES */
+
+    /** Defines minimal value for transaction sum to be accepted by daemon */
+    readonly transactionMinimal: number;
+
+    /** Is Daemon active at the moment */
+    public get isRunning() {
+        return this.runningState;
+    }
+
+    /* PRIVATE VARIABLES */
+
+    // Default config
     private readonly config: DaemonConfig = {
+        jsonFileDir: process.cwd(),
         updateTimout: 30,
         storage: "json",
         jsonName: "qiwi-daemon.db.json",
     };
+
+    // API Key for qiwi to get info about wallet
     private readonly walletApiKey;
+
+    // Timeout that handles checking for updates in wallet
     private watchingProcess?: NodeJS.Timeout;
-    private listeners: { cb: Function; event: DaemonEvents }[] = [];
+
+    // Listenners for events
+    private listeners: { cb: Function; event: DaemonEvent }[] = [];
+
+    // Private daemon ativity state
     private runningState: boolean = false;
 
-    public get isRunning() {
-        return this.runningState;
-    }
+    // I ignore varnings about undefined "redis" field beacuse it's checked when storage set to redis
+    //  And if storage set to redis, this field will be initialized
+    // @ts-ignore
+    private readonly redis: QiwiDaemonRedis;
 
     constructor(config?: Partial<DaemonConfig>) {
         // If config passed, combining all values the default config values
         if (config) this.config = { ...this.config, ...config };
 
+        console.log(this.config);
+
+        // Checking required enviroment variables to be set
         envCheck();
 
+        if (this.config.storage == "json") {
+            if (!FileUtils.validFilename(config?.jsonName as string)) {
+                logger.error("Failed to validate file name for JSON storage. It must me valid filename, not path.");
+                throw new Error("Invalid filename");
+            }
+            FileUtils.setStorageDir(this.config.jsonFileDir);
+            JsonStorageUtils.setStorageFilename(this.config.jsonName);
+        } else if (this.config.storage == "redis") {
+            this.redis = new QiwiDaemonRedis();
+        }
+
+        const transactionMinimal = parseFloat(env("TRANS_AMOUNT"));
+
+        // Trasnactions minimal should not be less than zero and shoud be number
+        if (isNaN(transactionMinimal) || transactionMinimal < 0) {
+            logger.error("Failed to parse TRANS_AMOUNT enviroment variable. It must be positive number");
+            throw new Error("Failed to parse TRANS_AMOUNT.");
+        } else if (transactionMinimal === 0) {
+            logger.warn("TRANS_AMOUNT set to 0. Daemon will accept any value when checking transaction sum.");
+        }
+
+        this.transactionMinimal = transactionMinimal;
         this.walletApiKey = env("QIWI_TOKEN");
     }
 
+    // Getting sure that daemon has access to storage
     private connectStorage(): Promise<boolean> {
         return new Promise(async (res) => {
             const { storage: storageType, jsonName } = this.config;
 
             if (storageType == "redis") {
-                redisClient.on("connect", () => {
-                    logger.debug("Redis connected...");
+                this.redis.client.on("connect", () => {
+                    logger.debug("Redis is connected...");
+
                     res(true);
                 });
             } else if (storageType == "json") {
@@ -64,7 +114,7 @@ class QiWiDaemon {
                 const exists = await FileUtils.fileExists(storageFileName);
 
                 if (!exists) {
-                    await JsonStorageUtils.createStorageFile(storageFileName);
+                    await JsonStorageUtils.createStorageFile();
                     logger.info(`Created ${this.config.jsonName}`);
                 }
 
@@ -73,7 +123,7 @@ class QiWiDaemon {
         });
     }
 
-    /** This function start bot to check history */
+    /** This funtion forces daemon to work */
     async start() {
         await this.connectStorage();
 
@@ -81,17 +131,26 @@ class QiWiDaemon {
         this.emit("start");
     }
 
-    async stop(msg?: string) {
+    /**
+     *
+     * @param msg optional data to be passed to callback for additional information
+     */
+    async stop(msg?: any) {
         clearTimeout(this.watchingProcess as NodeJS.Timeout);
 
         if (this.config.storage == "redis") {
-            redisClient.quit();
+            try {
+                this.redis.client.quit();                
+            } catch {    
+                logger.warn("Redis quited with error");
+            }
         }
 
         this.runningState = false;
         this.emit("stop", msg ?? "Stop function call.");
     }
 
+    /** Shortcut for listen("transaction_confirm", cb) */
     onTransactionConfirm(listener: (id: string) => void) {
         this.listeners.push({ event: "confirm_transaction", cb: listener });
     }
@@ -101,11 +160,11 @@ class QiWiDaemon {
      * @param event - name for event to be listenned
      * @param listener - callback function to listen on event
      */
-    listen(event: DaemonEvents, listener: Function) {
+    listen(event: DaemonEvent, listener: Function) {
         this.listeners.push({ cb: listener, event });
     }
 
-    private emit(event: DaemonEvents, data?: any) {
+    private emit(event: DaemonEvent, data?: any) {
         this.listeners.filter((e) => e.event == event).forEach((e) => e.cb(data));
     }
 
@@ -123,7 +182,7 @@ class QiWiDaemon {
         if (!customKeyword) {
             while (true) {
                 const potentialKeyword = getKeyword();
-                if (!(await redisGet(potentialKeyword))) {
+                if (!(await this.redis.asyncGet(potentialKeyword))) {
                     keyword = potentialKeyword;
                     break;
                 }
@@ -137,16 +196,16 @@ class QiWiDaemon {
     }
 
     private async saveSession(s: Session) {
-        if (this.config.storage == "redis") await redisSet(s.keyword, s.id);
+        if (this.config.storage == "redis") await this.redis.asyncSet(s.keyword, s.id);
         else if (this.config.storage == "json") {
-            JsonStorageUtils.saveSession(s, this.config.jsonName);
+            JsonStorageUtils.saveSession(s);
         }
     }
 
     private async getSessionId(comment: string): Promise<string | null> {
-        if (this.config.storage == "redis") return await redisGet(comment);
+        if (this.config.storage == "redis") return await this.redis.asyncGet(comment);
         else if (this.config.storage == "json") {
-            const session = JsonStorageUtils.getSession(comment, this.config.jsonName);
+            const session = JsonStorageUtils.getSession(comment);
             if (session) return session.id;
             else return null;
         } else {
@@ -159,11 +218,11 @@ class QiWiDaemon {
         return new Promise((res) => {
             // I don't know what is 2nd argument for, so just throw the same keyword
             if (this.config.storage == "redis") {
-                redisClient.del(keyword, keyword, () => {
+                this.redis.client.del(keyword, keyword, () => {
                     res();
                 });
             } else if (this.config.storage == "json") {
-                JsonStorageUtils.deleteSession(keyword, this.config.jsonName);
+                JsonStorageUtils.deleteSession(keyword);
             }
         });
     }
@@ -194,9 +253,11 @@ class QiWiDaemon {
                 return this.stop("Unable to process payment history");
             }
 
+            console.log(transactions);
+
             if (transactions.data) {
                 let payments: Transaction[] = transactions.data
-                    .filter((tnx: any) => tnx.sum.amount >= Number(env("PAYMENT_AMOUNT")) && tnx.comment)
+                    .filter((tnx: any) => tnx.sum.amount >= this.transactionMinimal && tnx.comment)
                     .map((tnx: any) => {
                         return {
                             person: tnx.account,
@@ -207,13 +268,16 @@ class QiWiDaemon {
                 for (let payment of payments) {
                     if (confirmedComments.includes(payment.comment)) continue;
 
-                    const sessionId = await this.getSessionId(payment.comment);
+                    // Checking if daemon is actually running before requesting sessionId to avoid errors with disconnected Redis
+                    if (this.isRunning) {
+                        const sessionId = await this.getSessionId(payment.comment);
 
-                    if (sessionId) {
-                        confirmedComments.push(payment.comment);
-                        this.emit("confirm_transaction", sessionId);
-                        this.delSession(payment.comment);
-                        transactionsLogger.log("info", `Payment for ${sessionId} has confirmed.`);
+                        if (sessionId) {
+                            confirmedComments.push(payment.comment);
+                            this.emit("confirm_transaction", sessionId);
+                            this.delSession(payment.comment);
+                            transactionsLogger.log("info", `Payment for ${sessionId} has confirmed.`);
+                        }
                     }
                 }
             }
