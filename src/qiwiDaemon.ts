@@ -6,6 +6,7 @@ import { redisClient, redisGet, redisSet } from "./tools/redis";
 import { getKeyword } from "./tools/wordlist";
 import { FileUtils, JsonStorageUtils } from "./utils";
 import { Session } from "./types";
+import { QiWi } from "./tools/qiwi";
 
 type DaemonEvents = "start" | "confirm_transaction" | "watch_start" | "stop";
 
@@ -30,7 +31,7 @@ class QiWiDaemon {
         storage: "json",
         jsonName: "qiwi-daemon.db.json",
     };
-    private readonly wallet;
+    private readonly walletApiKey;
     private watchingProcess?: NodeJS.Timeout;
     private listeners: { cb: Function; event: DaemonEvents }[] = [];
     private runningState: boolean = false;
@@ -45,7 +46,7 @@ class QiWiDaemon {
 
         envCheck();
 
-        this.wallet = new asyncQiWi(env("QIWI_TOKEN"));
+        this.walletApiKey = env("QIWI_TOKEN");
     }
 
     private connectStorage(): Promise<boolean> {
@@ -80,7 +81,7 @@ class QiWiDaemon {
         this.emit("start");
     }
 
-    async stop() {
+    async stop(msg?: string) {
         clearTimeout(this.watchingProcess as NodeJS.Timeout);
 
         if (this.config.storage == "redis") {
@@ -88,10 +89,8 @@ class QiWiDaemon {
         }
 
         this.runningState = false;
-        this.emit("stop", "Stop function call.")
+        this.emit("stop", msg ?? "Stop function call.");
     }
-
-    
 
     onTransactionConfirm(listener: (id: string) => void) {
         this.listeners.push({ event: "confirm_transaction", cb: listener });
@@ -183,13 +182,16 @@ class QiWiDaemon {
             let transactions;
 
             try {
-                transactions = await this.wallet.getOperationHistory(env("PHONE_NUMBER"), { rows: 50, operation: "IN" });
-            } catch {
-                logger.error("Failed to get your transactions history. Probably, you have set bad credentials.");
+                transactions = await QiWi.getOperationsHistory(env("PHONE_NUMBER"), this.walletApiKey);
+            } catch (e) {
+                if (e.response && e.response.status == 401) {
+                    logger.error("QiWi Api responsed with 401 code. This means you have set wrong cridentials for your daemon.");
+                } else {
+                    logger.error("Unknown error occured.");
+                }
+
                 logger.warn("Stopping Daemon.");
-                this.emit("stop", "Failed to get transactions history.");
-                clearTimeout(this.watchingProcess as NodeJS.Timeout);
-                return;
+                return this.stop("Unable to process payment history");
             }
 
             if (transactions.data) {

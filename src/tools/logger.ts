@@ -41,13 +41,15 @@ const loggingOptions: LogOptions = {
     },
 };
 
-const logger = winston.createLogger({
-    silent: loggerDisabled,
 
+// If logging disabled, then only errors will be logged
+const mainLoggerLevel = loggerDisabled ? "error" : "info";
+
+const logger = winston.createLogger({
     transports: [
         new winston.transports.Console({
             ...loggingOptions.infoLevel,
-            level: isDebugMode ? "debug" : "info",
+            level: isDebugMode ? "debug" : mainLoggerLevel,
         }),
     ],
 });
