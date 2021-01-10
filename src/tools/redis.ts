@@ -10,7 +10,7 @@ class QiwiDaemonRedis {
     public client: redis.RedisClient;
 
     constructor() {
-        logger.debug(`Prefix "${prefix}" will be used for Redis (if using redis)`);
+        logger.debug(`Prefix "${prefix}" will be used for Redis.`);
 
         try {
             this.client = redis.createClient({ prefix });            

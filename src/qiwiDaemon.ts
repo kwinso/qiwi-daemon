@@ -67,8 +67,6 @@ class QiWiDaemon {
         // If config passed, combining all values the default config values
         if (config) this.config = { ...this.config, ...config };
 
-        console.log(this.config);
-
         // Checking required enviroment variables to be set
         envCheck();
 
@@ -252,8 +250,6 @@ class QiWiDaemon {
                 logger.warn("Stopping Daemon.");
                 return this.stop("Unable to process payment history");
             }
-
-            console.log(transactions);
 
             if (transactions.data) {
                 let payments: Transaction[] = transactions.data

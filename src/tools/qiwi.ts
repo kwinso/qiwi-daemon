@@ -14,8 +14,6 @@ export const QiWi = {
 
         const result = await axios.get(requestUrl, { headers, params: { rows: 50, operation: "IN" } });
 
-        console.log(result.data);
-
         return result.data;
     },
 };
